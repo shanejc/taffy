@@ -133,6 +133,8 @@ pub trait GridItemStyle: CoreStyle {
 /// [MDN](https://developer.mozilla.org/en-US/docs/Web/CSS/grid-auto-flow)
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(all(feature = "serde", feature = "std"), derive(ts_rs::TS))]
+#[cfg_attr(all(feature = "serde", feature = "std"), ts(export))]
 pub enum GridAutoFlow {
     /// Items are placed by filling each row in turn, adding new rows as necessary
     Row,
@@ -367,6 +369,8 @@ impl Default for Line<GridPlacement> {
 /// See <https://developer.mozilla.org/en-US/docs/Web/CSS/grid-template-columns>
 #[derive(Copy, Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
+#[cfg_attr(all(feature = "serde", feature = "std"), derive(ts_rs::TS))]
+#[cfg_attr(all(feature = "serde", feature = "std"), ts(export))]
 pub struct MaxTrackSizingFunction(pub(crate) CompactLength);
 impl TaffyZero for MaxTrackSizingFunction {
     const ZERO: Self = Self(CompactLength::ZERO);
@@ -666,6 +670,8 @@ impl MaxTrackSizingFunction {
 /// See <https://developer.mozilla.org/en-US/docs/Web/CSS/grid-template-columns>
 #[derive(Copy, Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
+#[cfg_attr(all(feature = "serde", feature = "std"), derive(ts_rs::TS))]
+#[cfg_attr(all(feature = "serde", feature = "std"), ts(export))]
 pub struct MinTrackSizingFunction(pub(crate) CompactLength);
 impl TaffyZero for MinTrackSizingFunction {
     const ZERO: Self = Self(CompactLength::ZERO);
@@ -943,6 +949,8 @@ impl From<Dimension> for NonRepeatedTrackSizingFunction {
 /// and the difference between AutoFit and AutoFill.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(all(feature = "serde", feature = "std"), derive(ts_rs::TS))]
+#[cfg_attr(all(feature = "serde", feature = "std"), ts(export))]
 pub enum GridTrackRepetition {
     /// Auto-repeating tracks should be generated to fit the container
     /// See: <https://developer.mozilla.org/en-US/docs/Web/CSS/repeat#auto-fill>
@@ -986,6 +994,8 @@ impl TryFrom<&str> for GridTrackRepetition {
 /// See <https://developer.mozilla.org/en-US/docs/Web/CSS/grid-template-columns>
 #[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(all(feature = "serde", feature = "std"), derive(ts_rs::TS))]
+#[cfg_attr(all(feature = "serde", feature = "std"), ts(export))]
 pub enum TrackSizingFunction {
     /// A single non-repeated track
     Single(NonRepeatedTrackSizingFunction),

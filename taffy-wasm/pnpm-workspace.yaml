@@ -1,0 +1,2 @@
+overrides:
+  taffy-wasm: link:pkg

@@ -7,6 +7,8 @@
 /// [MDN](https://developer.mozilla.org/en-US/docs/Web/CSS/align-items)
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(all(feature = "serde", feature = "std"), derive(ts_rs::TS))]
+#[cfg_attr(all(feature = "serde", feature = "std"), ts(export))]
 pub enum AlignItems {
     /// Items are packed toward the start of the axis
     Start,
@@ -59,6 +61,8 @@ pub type JustifySelf = AlignItems;
 /// [MDN](https://developer.mozilla.org/en-US/docs/Web/CSS/align-content)
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(all(feature = "serde", feature = "std"), derive(ts_rs::TS))]
+#[cfg_attr(all(feature = "serde", feature = "std"), ts(export))]
 pub enum AlignContent {
     /// Items are packed toward the start of the axis
     Start,

@@ -281,15 +281,13 @@ fn compute_preliminary(tree: &mut impl LayoutFlexboxContainer, node: NodeId, inp
         debug_log!("constants.node_outer_size", dbg:constants.node_outer_size);
         debug_log!("constants.node_inner_size", dbg:constants.node_inner_size);
 
-        // Re-resolve percentage gaps
+        // Re-resolve percentage gaps now that we have determined container size
         let style = tree.get_flexbox_container_style(node);
-        let inner_container_size = constants.inner_container_size.main(constants.dir);
-        let new_gap = style
-            .gap()
-            .main(constants.dir)
-            .maybe_resolve(inner_container_size, |val, basis| tree.calc(val, basis))
-            .unwrap_or(0.0);
-        constants.gap.set_main(constants.dir, new_gap);
+        let inner_container_size = constants.inner_container_size;
+        let new_gap = style.gap().resolve_or_zero(inner_container_size.map(Some), |val, basis| tree.calc(val, basis));
+        constants.gap = new_gap;
+
+        debug_log!("new gap", dbg:new_gap);
     }
 
     // 6. Resolve the flexible lengths of all the flex items to find their used main size.
@@ -317,16 +315,26 @@ fn compute_preliminary(tree: &mut impl LayoutFlexboxContainer, node: NodeId, inp
 
     // 9. Handle 'align-content: stretch'.
     debug_log!("handle_align_content_stretch");
+
+    // Re-resolve gaps before align-content stretch calculations
+    // This ensures that stretch calculations use the correct gap values
+    {
+        let style = tree.get_flexbox_container_style(node);
+        let inner_container_size = constants.inner_container_size;
+        let new_gap = style.gap().resolve_or_zero(inner_container_size.map(Some), |val, basis| tree.calc(val, basis));
+        constants.gap = new_gap;
+    }
+
     handle_align_content_stretch(&mut flex_lines, known_dimensions, &constants);
 
     // 10. Collapse visibility:collapse items. If any flex items have visibility: collapse,
-    //     note the cross size of the line they’re in as the item’s strut size, and restart
+    //     note the cross size of the line they're in as the item's strut size, and restart
     //     layout from the beginning.
     //
     //     In this second layout round, when collecting items into lines, treat the collapsed
     //     items as having zero main size. For the rest of the algorithm following that step,
     //     ignore the collapsed items entirely (as if they were display:none) except that after
-    //     calculating the cross size of the lines, if any line’s cross size is less than the
+    //     calculating the cross size of the lines, if any line's cross size is less than the
     //     largest strut size among all the collapsed items in the line, set its cross size to
     //     that strut size.
     //
@@ -350,9 +358,20 @@ fn compute_preliminary(tree: &mut impl LayoutFlexboxContainer, node: NodeId, inp
     debug_log!("resolve_cross_axis_auto_margins");
     resolve_cross_axis_auto_margins(&mut flex_lines, &constants);
 
-    // 15. Determine the flex container’s used cross size.
+    // 15. Determine the flex container's used cross size.
     debug_log!("determine_container_cross_size");
     let total_line_cross_size = determine_container_cross_size(&flex_lines, known_dimensions, &mut constants);
+
+    // Re-resolve gaps now that both main and cross axis sizes are determined
+    // This is especially important for percentage-based cross-axis gaps (row gaps in row direction)
+    {
+        let style = tree.get_flexbox_container_style(node);
+        let inner_container_size = constants.inner_container_size;
+        let new_gap = style.gap().resolve_or_zero(inner_container_size.map(Some), |val, basis| tree.calc(val, basis));
+        constants.gap = new_gap;
+
+        debug_log!("final gap", dbg:new_gap);
+    }
 
     // We have the container size.
     // If our caller does not care about performing layout we are done now.
@@ -579,9 +598,9 @@ fn generate_anonymous_flex_items(
 ///
 /// - [**Determine the available main and cross space for the flex items**](https://www.w3.org/TR/css-flexbox-1/#algo-available).
 ///
-/// For each dimension, if that dimension of the flex container’s content box is a definite size, use that;
+/// For each dimension, if that dimension of the flex container's content box is a definite size, use that;
 /// if that dimension of the flex container is being sized under a min or max-content constraint, the available space in that dimension is that constraint;
-/// otherwise, subtract the flex container’s margin, border, and padding from the space available to the flex container in that dimension and use that value.
+/// otherwise, subtract the flex container's margin, border, and padding from the space available to the flex container in that dimension and use that value.
 /// **This might result in an infinite value**.
 #[inline]
 #[must_use]
@@ -616,7 +635,7 @@ fn determine_available_space(
 ///
 /// - [**Determine the flex base size and hypothetical main size of each item:**](https://www.w3.org/TR/css-flexbox-1/#algo-main-item)
 ///
-///     - A. If the item has a definite used flex basis, that’s the flex base size.
+///     - A. If the item has a definite used flex basis, that's the flex base size.
 ///
 ///     - B. If the flex item has ...
 ///
@@ -624,17 +643,17 @@ fn determine_available_space(
 ///         - a used flex basis of content, and
 ///         - a definite cross size,
 ///
-///       then the flex base size is calculated from its inner cross size and the flex item’s intrinsic aspect ratio.
+///       then the flex base size is calculated from its inner cross size and the flex item's intrinsic aspect ratio.
 ///
 ///     - C. If the used flex basis is content or depends on its available space, and the flex container is being sized under a min-content
 ///       or max-content constraint (e.g. when performing automatic table layout \[CSS21\]), size the item under that constraint.
-///       The flex base size is the item’s resulting main size.
+///       The flex base size is the item's resulting main size.
 ///
 ///     - E. Otherwise, size the item into the available space using its used flex basis in place of its main size, treating a value of content as max-content.
-///       If a cross size is needed to determine the main size (e.g. when the flex item’s main size is in its block axis) and the flex item’s cross size is auto and not definite,
-///       in this calculation use fit-content as the flex item’s cross size. The flex base size is the item’s resulting main size.
+///       If a cross size is needed to determine the main size (e.g. when the flex item's main size is in its block axis) and the flex item's cross size is auto and not definite,
+///       in this calculation use fit-content as the flex item's cross size. The flex base size is the item's resulting main size.
 ///
-///   When determining the flex base size, the item’s min and max main sizes are ignored (no clamping occurs).
+///   When determining the flex base size, the item's min and max main sizes are ignored (no clamping occurs).
 ///   Furthermore, the sizing calculations that floor the content box size at zero when applying box-sizing are also ignored.
 ///   (For example, an item with a specified size of zero, positive padding, and box-sizing: border-box will have an outer flex base size of zero—and hence a negative inner flex base size.)
 #[inline]
@@ -702,12 +721,12 @@ fn determine_flex_base_size(
         drop(child_style);
 
         child.flex_basis = 'flex_basis: {
-            // A. If the item has a definite used flex basis, that’s the flex base size.
+            // A. If the item has a definite used flex basis, that's the flex base size.
 
             // B. If the flex item has an intrinsic aspect ratio,
             //    a used flex basis of content, and a definite cross size,
             //    then the flex base size is calculated from its inner
-            //    cross size and the flex item’s intrinsic aspect ratio.
+            //    cross size and the flex item's intrinsic aspect ratio.
 
             // Note: `child.size` has already been resolved against aspect_ratio in generate_anonymous_flex_items
             // So B will just work here by using main_size without special handling for aspect_ratio
@@ -719,26 +738,26 @@ fn determine_flex_base_size(
             // C. If the used flex basis is content or depends on its available space,
             //    and the flex container is being sized under a min-content or max-content
             //    constraint (e.g. when performing automatic table layout [CSS21]),
-            //    size the item under that constraint. The flex base size is the item’s
+            //    size the item under that constraint. The flex base size is the item's
             //    resulting main size.
 
             // This is covered by the implementation of E below, which passes the available_space constraint
             // through to the child size computation. It may need a separate implementation if/when D is implemented.
 
             // D. Otherwise, if the used flex basis is content or depends on its
-            //    available space, the available main size is infinite, and the flex item’s
+            //    available space, the available main size is infinite, and the flex item's
             //    inline axis is parallel to the main axis, lay the item out using the rules
             //    for a box in an orthogonal flow [CSS3-WRITING-MODES]. The flex base size
-            //    is the item’s max-content main size.
+            //    is the item's max-content main size.
 
             // TODO if/when vertical writing modes are supported
 
             // E. Otherwise, size the item into the available space using its used flex basis
             //    in place of its main size, treating a value of content as max-content.
             //    If a cross size is needed to determine the main size (e.g. when the
-            //    flex item’s main size is in its block axis) and the flex item’s cross size
+            //    flex item's main size is in its block axis) and the flex item's cross size
             //    is auto and not definite, in this calculation use fit-content as the
-            //    flex item’s cross size. The flex base size is the item’s resulting main size.
+            //    flex item's cross size. The flex base size is the item's resulting main size.
 
             let child_available_space = Size::MAX_CONTENT
                 .with_main(
@@ -774,7 +793,7 @@ fn determine_flex_base_size(
         let padding_border_sum = child.padding.main_axis_sum(constants.dir) + child.border.main_axis_sum(constants.dir);
         child.flex_basis = child.flex_basis.max(padding_border_sum);
 
-        // The hypothetical main size is the item’s flex base size clamped according to its
+        // The hypothetical main size is the item's flex base size clamped according to its
         // used min and max main sizes (and flooring the content box size at zero).
 
         child.inner_flex_basis =
@@ -833,7 +852,7 @@ fn determine_flex_base_size(
 ///
 ///     - If the flex container is single-line, collect all the flex items into a single flex line.
 ///
-///     - Otherwise, starting from the first uncollected item, collect consecutive items one by one until the first time that the next collected item would not fit into the flex container’s inner main size
+///     - Otherwise, starting from the first uncollected item, collect consecutive items one by one until the first time that the next collected item would not fit into the flex container's inner main size
 ///       (or until a forced break is encountered, see [§10 Fragmenting Flex Layout](https://www.w3.org/TR/css-flexbox-1/#pagination)).
 ///       If the very first uncollected item wouldn't fit, collect just it into the line.
 ///
@@ -901,12 +920,26 @@ fn collect_flex_lines<'a>(
                             // So first item in the line does not contribute a gap to the line length
                             let gap_contribution = if idx == 0 { 0.0 } else { main_axis_gap };
                             line_length += child.hypothetical_outer_size.main(constants.dir) + gap_contribution;
+
+                            debug_log!(
+                                "Line breaking check",
+                                format!(
+                                    "item {}: size={}, gap={}, total_line_length={}, available={}",
+                                    idx,
+                                    child.hypothetical_outer_size.main(constants.dir),
+                                    gap_contribution,
+                                    line_length,
+                                    main_axis_available_space
+                                )
+                            );
+
                             line_length > main_axis_available_space && idx != 0
                         })
                         .map(|(idx, _)| idx)
                         .unwrap_or(flex_items.len());
 
                     let (items, rest) = flex_items.split_at_mut(index);
+                    debug_log!("Created line with {} items", items.len());
                     lines.push(FlexLine { items, cross_size: 0.0, offset_cross: 0.0 });
                     flex_items = rest;
                 }
@@ -978,7 +1011,7 @@ fn determine_container_main_size(
             AvailableSpace::MinContent | AvailableSpace::MaxContent => {
                 // Define a base main_size variable. This is mutated once for iteration over the outer
                 // loop over the flex lines as:
-                //   "The flex container’s max-content size is the largest sum of the afore-calculated sizes of all items within a single line."
+                //   "The flex container's max-content size is the largest sum of the afore-calculated sizes of all items within a single line."
                 let mut main_size = 0.0;
 
                 for line in lines.iter_mut() {
@@ -1108,12 +1141,12 @@ fn determine_container_main_size(
                     //     .max_by(|a, b| a.total_cmp(b))
                     //     .unwrap_or(0.0); // Unwrap case never gets hit because there is always at least one item a line
 
-                    // Add each item’s flex base size to the product of:
+                    // Add each item's flex base size to the product of:
                     //   - its flex grow factor (or scaled flex shrink factor,if the chosen max-content flex fraction was negative)
                     //   - the chosen max-content flex fraction
                     // then clamp that result by the max main size floored by the min main size.
                     //
-                    // The flex container’s max-content size is the largest sum of the afore-calculated sizes of all items within a single line.
+                    // The flex container's max-content size is the largest sum of the afore-calculated sizes of all items within a single line.
                     let item_main_size_sum = line
                         .items
                         .iter_mut()
@@ -1165,7 +1198,7 @@ fn resolve_flexible_lengths(line: &mut FlexLine, constants: &AlgoConstants) {
     let total_main_axis_gap = sum_axis_gaps(constants.gap.main(constants.dir), line.items.len());
 
     // 1. Determine the used flex factor. Sum the outer hypothetical main sizes of all
-    //    items on the line. If the sum is less than the flex container’s inner main size,
+    //    items on the line. If the sum is less than the flex container's inner main size,
     //    use the flex grow factor for the rest of this algorithm; otherwise, use the
     //    flex shrink factor.
 
@@ -1203,7 +1236,7 @@ fn resolve_flexible_lengths(line: &mut FlexLine, constants: &AlgoConstants) {
     }
 
     // 3. Calculate initial free space. Sum the outer sizes of all items on the line,
-    //    and subtract this from the flex container’s inner main size. For frozen items,
+    //    and subtract this from the flex container's inner main size. For frozen items,
     //    use their outer target main size; for other items, use their outer flex base size.
 
     let used_space: f32 = total_main_axis_gap
@@ -1232,7 +1265,7 @@ fn resolve_flexible_lengths(line: &mut FlexLine, constants: &AlgoConstants) {
         }
 
         // b. Calculate the remaining free space as for initial free space, above.
-        //    If the sum of the unfrozen flex items’ flex factors is less than one,
+        //    If the sum of the unfrozen flex items' flex factors is less than one,
         //    multiply the initial free space by this sum. If the magnitude of this
         //    value is less than the magnitude of the remaining free space, use this
         //    as the remaining free space.
@@ -1272,15 +1305,15 @@ fn resolve_flexible_lengths(line: &mut FlexLine, constants: &AlgoConstants) {
         //    - If the remaining free space is zero
         //        Do Nothing
         //    - If using the flex grow factor
-        //        Find the ratio of the item’s flex grow factor to the sum of the
-        //        flex grow factors of all unfrozen items on the line. Set the item’s
+        //        Find the ratio of the item's flex grow factor to the sum of the
+        //        flex grow factors of all unfrozen items on the line. Set the item's
         //        target main size to its flex base size plus a fraction of the remaining
         //        free space proportional to the ratio.
         //    - If using the flex shrink factor
         //        For every unfrozen item on the line, multiply its flex shrink factor by
         //        its inner flex base size, and note this as its scaled flex shrink factor.
-        //        Find the ratio of the item’s scaled flex shrink factor to the sum of the
-        //        scaled flex shrink factors of all unfrozen items on the line. Set the item’s
+        //        Find the ratio of the item's scaled flex shrink factor to the sum of the
+        //        scaled flex shrink factors of all unfrozen items on the line. Set the item's
         //        target main size to its flex base size minus a fraction of the absolute value
         //        of the remaining free space proportional to the ratio. Note this may result
         //        in a negative inner main size; it will be corrected in the next step.
@@ -1310,10 +1343,10 @@ fn resolve_flexible_lengths(line: &mut FlexLine, constants: &AlgoConstants) {
             }
         }
 
-        // d. Fix min/max violations. Clamp each non-frozen item’s target main size by its
+        // d. Fix min/max violations. Clamp each non-frozen item's target main size by its
         //    used min and max main sizes and floor its content-box size at zero. If the
-        //    item’s target main size was made smaller by this, it’s a max violation.
-        //    If the item’s target main size was made larger by this, it’s a min violation.
+        //    item's target main size was made smaller by this, it's a max violation.
+        //    If the item's target main size was made larger by this, it's a min violation.
 
         let total_violation = unfrozen.iter_mut().fold(0.0, |acc, child| -> f32 {
             let resolved_min_main: Option<f32> = child.resolved_minimum_main_size.into();
@@ -1482,7 +1515,7 @@ fn calculate_children_base_lines(
 #[inline]
 fn calculate_cross_size(flex_lines: &mut [FlexLine], node_size: Size<Option<f32>>, constants: &AlgoConstants) {
     // If the flex container is single-line and has a definite cross size,
-    // the cross size of the flex line is the flex container’s inner cross size.
+    // the cross size of the flex line is the flex container's inner cross size.
     if !constants.is_wrap && node_size.cross(constants.dir).is_some() {
         let cross_axis_padding_border = constants.content_box_inset.cross_axis_sum(constants.dir);
         let cross_min_size = constants.min_size.cross(constants.dir);
@@ -1498,8 +1531,8 @@ fn calculate_cross_size(flex_lines: &mut [FlexLine], node_size: Size<Option<f32>
         //
         //    1. Collect all the flex items whose inline-axis is parallel to the main-axis, whose
         //       align-self is baseline, and whose cross-axis margins are both non-auto. Find the
-        //       largest of the distances between each item’s baseline and its hypothetical outer
-        //       cross-start edge, and the largest of the distances between each item’s baseline
+        //       largest of the distances between each item's baseline and its hypothetical outer
+        //       cross-start edge, and the largest of the distances between each item's baseline
         //       and its hypothetical outer cross-end edge, and sum these two values.
 
         //    2. Among all the items not collected by the previous step, find the largest
@@ -1525,8 +1558,8 @@ fn calculate_cross_size(flex_lines: &mut [FlexLine], node_size: Size<Option<f32>
                 .fold(0.0, |acc, x| acc.max(x));
         }
 
-        // If the flex container is single-line, then clamp the line’s cross-size to be within the container’s computed min and max cross sizes.
-        // Note that if CSS 2.1’s definition of min/max-width/height applied more generally, this behavior would fall out automatically.
+        // If the flex container is single-line, then clamp the line's cross-size to be within the container's computed min and max cross sizes.
+        // Note that if CSS 2.1's definition of min/max-width/height applied more generally, this behavior would fall out automatically.
         if !constants.is_wrap {
             let cross_axis_padding_border = constants.content_box_inset.cross_axis_sum(constants.dir);
             let cross_min_size = constants.min_size.cross(constants.dir);
@@ -1544,27 +1577,22 @@ fn calculate_cross_size(flex_lines: &mut [FlexLine], node_size: Size<Option<f32>
 /// # [9.4. Cross Size Determination](https://www.w3.org/TR/css-flexbox-1/#cross-sizing)
 ///
 /// - [**Handle 'align-content: stretch'**](https://www.w3.org/TR/css-flexbox-1/#algo-line-stretch). If the flex container has a definite cross size, align-content is stretch,
-///   and the sum of the flex lines' cross sizes is less than the flex container’s inner cross size,
-///   increase the cross size of each flex line by equal amounts such that the sum of their cross sizes exactly equals the flex container’s inner cross size.
+///   and the sum of the flex lines' cross sizes is less than the flex container's inner cross size,
+///   increase the cross size of each flex line by equal amounts such that the sum of their cross sizes exactly equals the flex container's inner cross size.
 #[inline]
 fn handle_align_content_stretch(flex_lines: &mut [FlexLine], node_size: Size<Option<f32>>, constants: &AlgoConstants) {
     if constants.align_content == AlignContent::Stretch {
-        let cross_axis_padding_border = constants.content_box_inset.cross_axis_sum(constants.dir);
-        let cross_min_size = constants.min_size.cross(constants.dir);
-        let cross_max_size = constants.max_size.cross(constants.dir);
-        let container_min_inner_cross = node_size
-            .cross(constants.dir)
-            .or(cross_min_size)
-            .maybe_clamp(cross_min_size, cross_max_size)
-            .maybe_sub(cross_axis_padding_border)
-            .maybe_max(0.0)
-            .unwrap_or(0.0);
-
+        // We need to account for gaps when comparing line sizes to container size
+        // because the container will need to accommodate both lines and gaps
         let total_cross_axis_gap = sum_axis_gaps(constants.gap.cross(constants.dir), flex_lines.len());
-        let lines_total_cross: f32 = flex_lines.iter().map(|line| line.cross_size).sum::<f32>() + total_cross_axis_gap;
+        let lines_total_cross: f32 = flex_lines.iter().map(|line| line.cross_size).sum::<f32>();
+        let lines_total_cross_with_gaps = lines_total_cross + total_cross_axis_gap;
 
-        if lines_total_cross < container_min_inner_cross {
-            let remaining = container_min_inner_cross - lines_total_cross;
+        // Use the inner container size directly since gaps are handled separately in positioning
+        let available_for_lines = constants.inner_container_size.cross(constants.dir);
+
+        if lines_total_cross_with_gaps < available_for_lines {
+            let remaining = available_for_lines - lines_total_cross_with_gaps;
             let addition = remaining / flex_lines.len() as f32;
             flex_lines.iter_mut().for_each(|line| line.cross_size += addition);
         }
@@ -1576,8 +1604,8 @@ fn handle_align_content_stretch(flex_lines: &mut [FlexLine], node_size: Size<Opt
 /// # [9.4. Cross Size Determination](https://www.w3.org/TR/css-flexbox-1/#cross-sizing)
 ///
 /// - [**Determine the used cross size of each flex item**](https://www.w3.org/TR/css-flexbox-1/#algo-stretch). If a flex item has align-self: stretch, its computed cross size property is auto,
-///   and neither of its cross-axis margins are auto, the used outer cross size is the used cross size of its flex line, clamped according to the item’s used min and max cross sizes.
-///   Otherwise, the used cross size is the item’s hypothetical cross size.
+///   and neither of its cross-axis margins are auto, the used outer cross size is the used cross size of its flex line, clamped according to the item's used min and max cross sizes.
+///   Otherwise, the used cross size is the item's hypothetical cross size.
 ///
 ///   If the flex item has align-self: stretch, redo layout for its contents, treating this used size as its definite cross size so that percentage-sized children can be resolved.
 ///
@@ -1808,11 +1836,11 @@ fn align_flex_items_along_cross_axis(
     }
 }
 
-/// Determine the flex container’s used cross size.
+/// Determine the flex container's used cross size.
 ///
 /// # [9.6. Cross-Axis Alignment](https://www.w3.org/TR/css-flexbox-1/#cross-alignment)
 ///
-/// - [**Determine the flex container’s used cross size**](https://www.w3.org/TR/css-flexbox-1/#algo-cross-container):
+/// - [**Determine the flex container's used cross size**](https://www.w3.org/TR/css-flexbox-1/#algo-cross-container):
 ///
 ///     - If the cross size property is a definite size, use that, clamped by the used min and max cross sizes of the flex container.
 ///

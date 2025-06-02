@@ -197,7 +197,7 @@ mod inner {
         #[inline(always)]
         #[cfg(feature = "serde")]
         pub(super) fn from_serialized(value: u64) -> Self {
-            Self { tag: value >> 32 as usize, ptr: value & 0xFFFFFFFF as usize as *const () }
+            Self { tag: (value >> 32) as usize, ptr: (value & 0xFFFFFFFF) as usize as *const () }
         }
     }
 }
@@ -207,6 +207,9 @@ use inner::CompactLengthInner;
 /// A representation of a length as a compact 64-bit tagged pointer
 #[derive(Copy, Clone, PartialEq, Debug)]
 #[repr(transparent)]
+#[cfg_attr(all(feature = "serde", feature = "std"), derive(ts_rs::TS))]
+#[cfg_attr(all(feature = "serde", feature = "std"), ts(export))]
+#[cfg_attr(all(feature = "serde", feature = "std"), ts(type = "CompactLength"))]
 pub struct CompactLength(CompactLengthInner);
 
 impl CompactLength {

@@ -1,4 +1,7 @@
 //! Style type for representing available space as a sizing constraint
+#[cfg(feature = "serde")]
+use serde::Serialize;
+
 use crate::{
     prelude::{FromLength, TaffyMaxContent, TaffyMinContent, TaffyZero},
     sys::abs,
@@ -9,6 +12,8 @@ use crate::{
 /// <https://www.w3.org/TR/css-sizing-3/#available>
 #[derive(Copy, Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
+#[cfg_attr(all(feature = "serde", feature = "std"), derive(ts_rs::TS))]
+#[cfg_attr(all(feature = "serde", feature = "std"), ts(export))]
 pub enum AvailableSpace {
     /// The amount of space available is the specified number of pixels
     Definite(f32),
@@ -17,6 +22,58 @@ pub enum AvailableSpace {
     /// The amount of space available is indefinite and the node should be laid out under a max-content constraint
     MaxContent,
 }
+
+#[cfg(feature = "serde")]
+impl<'de> serde::Deserialize<'de> for AvailableSpace {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        use serde::de::{self, Visitor};
+        use std::fmt;
+
+        struct AvailableSpaceVisitor;
+
+        impl<'de> Visitor<'de> for AvailableSpaceVisitor {
+            type Value = AvailableSpace;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("an AvailableSpace variant")
+            }
+
+            fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+            where
+                A: serde::de::MapAccess<'de>,
+            {
+                if let Some(key) = map.next_key::<String>()? {
+                    match key.as_str() {
+                        "Definite" => {
+                            let value: f32 = map.next_value()?;
+                            Ok(AvailableSpace::Definite(value))
+                        }
+                        _ => Err(de::Error::unknown_variant(&key, &["Definite"])),
+                    }
+                } else {
+                    Err(de::Error::invalid_length(0, &self))
+                }
+            }
+
+            fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                match value {
+                    "MinContent" => Ok(AvailableSpace::MinContent),
+                    "MaxContent" => Ok(AvailableSpace::MaxContent),
+                    _ => Err(de::Error::unknown_variant(value, &["MinContent", "MaxContent"])),
+                }
+            }
+        }
+
+        deserializer.deserialize_any(AvailableSpaceVisitor)
+    }
+}
+
 impl TaffyZero for AvailableSpace {
     const ZERO: Self = Self::Definite(0.0);
 }

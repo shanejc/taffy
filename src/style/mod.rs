@@ -1,4 +1,5 @@
 //! A typed representation of [CSS style properties](https://css-tricks.com/snippets/css/a-guide-to-flexbox/) in Rust. Used as input to layout computation.
+
 mod alignment;
 mod available_space;
 mod compact_length;
@@ -136,6 +137,8 @@ pub trait CoreStyle {
 /// The default values depends on on which feature flags are enabled. The order of precedence is: Flex, Grid, Block, None.
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(all(feature = "serde", feature = "std"), derive(ts_rs::TS))]
+#[cfg_attr(all(feature = "serde", feature = "std"), ts(export))]
 pub enum Display {
     /// The children will follow the block layout algorithm
     #[cfg(feature = "block_layout")]
@@ -221,6 +224,8 @@ impl Default for BoxGenerationMode {
 /// [`Position::Relative`] is the default value, in contrast to the default behavior in CSS.
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(all(feature = "serde", feature = "std"), derive(ts_rs::TS))]
+#[cfg_attr(all(feature = "serde", feature = "std"), ts(export))]
 pub enum Position {
     /// The offset is computed relative to the final position given by the layout algorithm.
     /// Offsets do not affect the position of any other items; they are effectively a correction factor applied at the end.
@@ -254,6 +259,8 @@ impl Default for Position {
 /// See <https://developer.mozilla.org/en-US/docs/Web/CSS/box-sizing>
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(all(feature = "serde", feature = "std"), derive(ts_rs::TS))]
+#[cfg_attr(all(feature = "serde", feature = "std"), ts(export))]
 pub enum BoxSizing {
     /// Size styles such size, min_size, max_size specify the box's "border box" (the size excluding margin but including padding/border)
     BorderBox,
@@ -282,6 +289,8 @@ impl Default for BoxSizing {
 /// <https://developer.mozilla.org/en-US/docs/Web/CSS/overflow>
 #[derive(Copy, Clone, PartialEq, Eq, Debug, Default)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(all(feature = "serde", feature = "std"), derive(ts_rs::TS))]
+#[cfg_attr(all(feature = "serde", feature = "std"), ts(export))]
 pub enum Overflow {
     /// The automatic minimum size of this node as a flexbox/grid item should be based on the size of its content.
     /// Content that overflows this node *should* contribute to the scroll region of its parent.
@@ -338,6 +347,8 @@ impl Overflow {
 #[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(default))]
+#[cfg_attr(all(feature = "serde", feature = "std"), derive(ts_rs::TS))]
+#[cfg_attr(all(feature = "serde", feature = "std"), ts(export))]
 pub struct Style {
     /// What layout strategy should be used?
     pub display: Display,
@@ -446,15 +457,19 @@ pub struct Style {
     // Grid container properies
     /// Defines the track sizing functions (heights) of the grid rows
     #[cfg(feature = "grid")]
+    #[cfg_attr(all(feature = "serde", feature = "std"), ts(skip))]
     pub grid_template_rows: GridTrackVec<TrackSizingFunction>,
     /// Defines the track sizing functions (widths) of the grid columns
     #[cfg(feature = "grid")]
+    #[cfg_attr(all(feature = "serde", feature = "std"), ts(skip))]
     pub grid_template_columns: GridTrackVec<TrackSizingFunction>,
     /// Defines the size of implicitly created rows
     #[cfg(feature = "grid")]
+    #[cfg_attr(all(feature = "serde", feature = "std"), ts(skip))]
     pub grid_auto_rows: GridTrackVec<NonRepeatedTrackSizingFunction>,
     /// Defined the size of implicitly created columns
     #[cfg(feature = "grid")]
+    #[cfg_attr(all(feature = "serde", feature = "std"), ts(skip))]
     pub grid_auto_columns: GridTrackVec<NonRepeatedTrackSizingFunction>,
     /// Controls how items get placed into the grid for auto-placed items
     #[cfg(feature = "grid")]
@@ -463,9 +478,11 @@ pub struct Style {
     // Grid child properties
     /// Defines which row in the grid the item should start and end at
     #[cfg(feature = "grid")]
+    #[cfg_attr(all(feature = "serde", feature = "std"), ts(skip))]
     pub grid_row: Line<GridPlacement>,
     /// Defines which column in the grid the item should start and end at
     #[cfg(feature = "grid")]
+    #[cfg_attr(all(feature = "serde", feature = "std"), ts(skip))]
     pub grid_column: Line<GridPlacement>,
 }
 

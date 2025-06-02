@@ -75,6 +75,8 @@ use crate::geometry::AbsoluteAxis;
 /// [Specification](https://www.w3.org/TR/css-flexbox-1/#flex-wrap-property)
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(all(feature = "serde", feature = "std"), derive(ts_rs::TS))]
+#[cfg_attr(all(feature = "serde", feature = "std"), ts(export))]
 pub enum FlexWrap {
     /// Items will not wrap and stay on a single line
     NoWrap,
@@ -103,6 +105,8 @@ impl Default for FlexWrap {
 /// [Specification](https://www.w3.org/TR/css-flexbox-1/#flex-direction-property)
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(all(feature = "serde", feature = "std"), derive(ts_rs::TS))]
+#[cfg_attr(all(feature = "serde", feature = "std"), ts(export))]
 pub enum FlexDirection {
     /// Defines +x as the main axis
     ///

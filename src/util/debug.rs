@@ -5,6 +5,31 @@ use core::fmt::{Debug, Display, Write};
 #[cfg(any(feature = "debug", feature = "profile"))]
 use std::sync::Mutex;
 
+// Add WASM console logging support
+#[cfg(all(target_arch = "wasm32", feature = "wasm-console", any(feature = "debug", feature = "profile")))]
+mod wasm_console {
+    use wasm_bindgen::prelude::*;
+
+    #[wasm_bindgen]
+    extern "C" {
+        #[wasm_bindgen(js_namespace = console)]
+        pub fn log(s: &str);
+    }
+}
+
+// Platform-specific logging function
+#[cfg(any(feature = "debug", feature = "profile"))]
+pub fn platform_log(message: &str) {
+    #[cfg(all(target_arch = "wasm32", feature = "wasm-console"))]
+    {
+        wasm_console::log(message);
+    }
+    #[cfg(not(all(target_arch = "wasm32", feature = "wasm-console")))]
+    {
+        println!("{}", message);
+    }
+}
+
 #[doc(hidden)]
 #[cfg(any(feature = "debug", feature = "profile"))]
 pub struct DebugLogger {
@@ -36,7 +61,7 @@ impl DebugLogger {
         let key = stack.last().unwrap_or(&EMPTY_STRING);
         let level = stack.len() * 4;
         let space = " ";
-        println!("{space:level$}{key}: {message}");
+        platform_log(&format!("{space:level$}{key}: {message}"));
     }
 
     pub fn labelled_log(&self, label: &str, message: impl Display) {
@@ -44,7 +69,7 @@ impl DebugLogger {
         let key = stack.last().unwrap_or(&EMPTY_STRING);
         let level = stack.len() * 4;
         let space = " ";
-        println!("{space:level$}{key}: {label} {message}");
+        platform_log(&format!("{space:level$}{key}: {label} {message}"));
     }
 
     pub fn debug_log(&self, message: impl Debug) {
@@ -52,7 +77,7 @@ impl DebugLogger {
         let key = stack.last().unwrap_or(&EMPTY_STRING);
         let level = stack.len() * 4;
         let space = " ";
-        println!("{space:level$}{key}: {message:?}");
+        platform_log(&format!("{space:level$}{key}: {message:?}"));
     }
 
     pub fn labelled_debug_log(&self, label: &str, message: impl Debug) {
@@ -60,7 +85,7 @@ impl DebugLogger {
         let key = stack.last().unwrap_or(&EMPTY_STRING);
         let level = stack.len() * 4;
         let space = " ";
-        println!("{space:level$}{key}: {label} {message:?}");
+        platform_log(&format!("{space:level$}{key}: {label} {message:?}"));
     }
 }
 
@@ -91,7 +116,7 @@ macro_rules! debug_log {
     // Blank newline
     () => {{
         #[cfg(feature = "debug")]
-        println!();
+        $crate::util::debug::platform_log("");
     }};
 }
 

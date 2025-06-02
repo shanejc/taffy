@@ -22,6 +22,8 @@ pub trait BlockItemStyle: CoreStyle {
 /// Used by block layout to implement the legacy behaviour of `<center>` and `<div align="left | right | center">`
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(all(feature = "serde", feature = "std"), derive(ts_rs::TS))]
+#[cfg_attr(all(feature = "serde", feature = "std"), ts(export))]
 pub enum TextAlign {
     /// No special legacy text align behaviour.
     #[default]

@@ -130,6 +130,7 @@ where
                 size.maybe_clamp(node_min_size.height, node_max_size.height) - content_box_inset.vertical_axis_sum()
             }),
     };
+    debug_log!("About to measure with available_space", dbg:available_space);
 
     // Measure node
     let measured_size = measure_function(

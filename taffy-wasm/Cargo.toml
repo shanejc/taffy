@@ -1,0 +1,43 @@
+[package]
+name = "taffy-wasm"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+# Debug profile for development with full debug info
+[profile.dev]
+debug = 2        # Full debug info including DWARF
+opt-level = 0    # No optimizations
+overflow-checks = true
+# Ensure debug info is preserved in WASM
+[profile.dev.package.wee_alloc]
+debug = false    # wee_alloc debug info can be noisy
+
+# Release profile that still includes debug info for profiling
+[profile.profiling]
+inherits = "release"
+debug = 1        # Line tables only
+
+[dependencies]
+wasm-bindgen = "0.2"
+js-sys = "0.3"
+web-sys = { version = "0.3", features = ["console"] }
+serde        = { version = "1.0", features = ["derive"] }
+serde-wasm-bindgen = "0.4"
+console_error_panic_hook = "0.1"
+# Path points to the *root* crate now
+taffy = { path = "..", default-features = false, features = ["flexbox","grid","serde","taffy_tree","debug","wasm-console"] }
+
+[build-dependencies]
+ts-rs = "10.1.0"
+taffy = { path = "..", features = ["serde", "std", "wasm-console"] }
+regex = "1.10"
+
+[features]
+default = []
+# Use browser console.log for debug output (default for web)
+browser-console = []
+# Use println for debug output (better for Node.js/Vitest/VSCode debugging) 
+node-console = []

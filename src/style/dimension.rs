@@ -8,6 +8,8 @@ use crate::style_helpers::{FromLength, FromPercent, TaffyAuto, TaffyZero};
 /// This is commonly combined with [`Rect`], [`Point`](crate::geometry::Point) and [`Size<T>`](crate::geometry::Size).
 #[derive(Copy, Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
+#[cfg_attr(all(feature = "serde", feature = "std"), derive(ts_rs::TS))]
+#[cfg_attr(all(feature = "serde", feature = "std"), ts(export))]
 pub struct LengthPercentage(pub(crate) CompactLength);
 impl TaffyZero for LengthPercentage {
     const ZERO: Self = Self(CompactLength::ZERO);
@@ -83,6 +85,8 @@ impl<'de> serde::Deserialize<'de> for LengthPercentage {
 /// This is commonly combined with [`Rect`], [`Point`](crate::geometry::Point) and [`Size<T>`](crate::geometry::Size).
 #[derive(Copy, Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
+#[cfg_attr(all(feature = "serde", feature = "std"), derive(ts_rs::TS))]
+#[cfg_attr(all(feature = "serde", feature = "std"), ts(export))]
 pub struct LengthPercentageAuto(pub(crate) CompactLength);
 impl TaffyZero for LengthPercentageAuto {
     const ZERO: Self = Self(CompactLength::ZERO);
@@ -196,6 +200,8 @@ impl<'de> serde::Deserialize<'de> for LengthPercentageAuto {
 /// This is commonly combined with [`Rect`], [`Point`](crate::geometry::Point) and [`Size<T>`](crate::geometry::Size).
 #[derive(Copy, Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
+#[cfg_attr(all(feature = "serde", feature = "std"), derive(ts_rs::TS))]
+#[cfg_attr(all(feature = "serde", feature = "std"), ts(export))]
 pub struct Dimension(pub(crate) CompactLength);
 impl TaffyZero for Dimension {
     const ZERO: Self = Self(CompactLength::ZERO);
