@@ -286,8 +286,6 @@ fn compute_preliminary(tree: &mut impl LayoutFlexboxContainer, node: NodeId, inp
         let inner_container_size = constants.inner_container_size;
         let new_gap = style.gap().resolve_or_zero(inner_container_size.map(Some), |val, basis| tree.calc(val, basis));
         constants.gap = new_gap;
-
-        debug_log!("new gap", dbg:new_gap);
     }
 
     // 6. Resolve the flexible lengths of all the flex items to find their used main size.
@@ -369,8 +367,6 @@ fn compute_preliminary(tree: &mut impl LayoutFlexboxContainer, node: NodeId, inp
         let inner_container_size = constants.inner_container_size;
         let new_gap = style.gap().resolve_or_zero(inner_container_size.map(Some), |val, basis| tree.calc(val, basis));
         constants.gap = new_gap;
-
-        debug_log!("final gap", dbg:new_gap);
     }
 
     // We have the container size.
@@ -939,7 +935,6 @@ fn collect_flex_lines<'a>(
                         .unwrap_or(flex_items.len());
 
                     let (items, rest) = flex_items.split_at_mut(index);
-                    debug_log!("Created line with {} items", items.len());
                     lines.push(FlexLine { items, cross_size: 0.0, offset_cross: 0.0 });
                     flex_items = rest;
                 }
@@ -1580,7 +1575,7 @@ fn calculate_cross_size(flex_lines: &mut [FlexLine], node_size: Size<Option<f32>
 ///   and the sum of the flex lines' cross sizes is less than the flex container's inner cross size,
 ///   increase the cross size of each flex line by equal amounts such that the sum of their cross sizes exactly equals the flex container's inner cross size.
 #[inline]
-fn handle_align_content_stretch(flex_lines: &mut [FlexLine], node_size: Size<Option<f32>>, constants: &AlgoConstants) {
+fn handle_align_content_stretch(flex_lines: &mut [FlexLine], _node_size: Size<Option<f32>>, constants: &AlgoConstants) {
     if constants.align_content == AlignContent::Stretch {
         // We need to account for gaps when comparing line sizes to container size
         // because the container will need to accommodate both lines and gaps
