@@ -4,7 +4,7 @@ use taffy::{TaffyTree as Taffy, prelude::*, style::Style};
 use wasm_bindgen::prelude::*;
 
 // Import console.log for browser debugging
-use web_sys::console;
+// use web_sys::console;
 
 // Set up console logging for WASM
 #[wasm_bindgen(start)]
@@ -20,9 +20,12 @@ extern "C" {
     fn log(s: &str);
 }
 
-// Macro to use our WASM console.log function
+// Macro to use our WASM console.log function - only active in debug builds
 macro_rules! wasm_log {
-    ($($t:tt)*) => (log(&format!($($t)*)))
+    ($($t:tt)*) => {
+        #[cfg(debug_assertions)]
+        log(&format!($($t)*))
+    }
 }
 
 /// Thin, easily‑serialised copy of `Style`
@@ -58,9 +61,7 @@ impl TaffyTree {
         let rs: JsStyle = match serde_wasm_bindgen::from_value(style) {
             Ok(style) => style,
             Err(e) => {
-                // Log the error and use default style instead of panicking
-                web_sys::console::error_1(&format!("Style decode error in new_leaf: {}", e).into());
-                web_sys::console::error_1(&"Using default style instead".into());
+                wasm_log!("🚀 WASM: Style decode error in new_leaf: {}", e);
                 JsStyle(Style::default())
             }
         };
@@ -80,13 +81,13 @@ impl TaffyTree {
         let rs: JsStyle = match serde_wasm_bindgen::from_value(style) {
             Ok(style) => style,
             Err(e) => {
-                web_sys::console::error_1(&format!("Style decode error: {}", e).into());
+                wasm_log!("🚀 WASM: Style decode error in update_style: {}", e);
                 return;
             }
         };
         let node = NodeId::from(node_id as u64);
         if let Err(e) = self.inner.borrow_mut().set_style(node, rs.0) {
-            web_sys::console::error_1(&format!("Set style error: {:?}", e).into());
+            wasm_log!("🚀 WASM: Set style error: {}", e);
         }
     }
 
@@ -134,7 +135,7 @@ impl TaffyTree {
             let constraints_js = match serde_wasm_bindgen::to_value(&constraints) {
                 Ok(value) => value,
                 Err(e) => {
-                    web_sys::console::error_1(&format!("Failed to serialize constraints: {}", e).into());
+                    wasm_log!("🚀 WASM: Failed to serialize constraints: {}", e);
                     return Size::ZERO;
                 }
             };
