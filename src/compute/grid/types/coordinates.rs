@@ -4,6 +4,9 @@ use crate::geometry::Line;
 use core::cmp::{max, Ordering};
 use core::ops::{Add, AddAssign, Sub};
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 /// Represents a grid line position in "CSS Grid Line" coordinates
 ///
 /// "CSS Grid Line" coordinates are those used in grid-row/grid-column in the CSS grid spec:
@@ -14,6 +17,8 @@ use core::ops::{Add, AddAssign, Sub};
 ///   - 0 is not a valid index
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(all(feature = "serde", feature = "std"), derive(ts_rs::TS))]
+#[cfg_attr(all(feature = "serde", feature = "std"), ts(export))]
 #[repr(transparent)]
 pub struct GridLine(i16);
 

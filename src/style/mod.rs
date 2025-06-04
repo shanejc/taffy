@@ -22,12 +22,13 @@ pub use self::block::{BlockContainerStyle, BlockItemStyle, TextAlign};
 #[cfg(feature = "flexbox")]
 pub use self::flex::{FlexDirection, FlexWrap, FlexboxContainerStyle, FlexboxItemStyle};
 #[cfg(feature = "grid")]
-pub(crate) use self::grid::{GenericGridPlacement, OriginZeroGridPlacement};
-#[cfg(feature = "grid")]
 pub use self::grid::{
-    GridAutoFlow, GridContainerStyle, GridItemStyle, GridPlacement, GridTrackRepetition, MaxTrackSizingFunction,
-    MinTrackSizingFunction, NonRepeatedTrackSizingFunction, TrackSizingFunction,
+    ConcreteGridPlacement, GridAutoFlow, GridContainerStyle, GridItemStyle, GridPlacement, GridTrackRepetition,
+    MaxTrackSizingFunction, MinTrackSizingFunction, NonRepeatedTrackSizingFunction, SimpleMaxTrackSizingFunction,
+    SimpleMinTrackSizingFunction, SimpleNonRepeatedTrackSizingFunction, SimpleTrackSizingFunction, TrackSizingFunction,
 };
+#[cfg(feature = "grid")]
+pub(crate) use self::grid::{GenericGridPlacement, OriginZeroGridPlacement};
 
 use crate::geometry::{Point, Rect, Size};
 use crate::style_helpers::TaffyAuto as _;
@@ -457,19 +458,19 @@ pub struct Style {
     // Grid container properies
     /// Defines the track sizing functions (heights) of the grid rows
     #[cfg(feature = "grid")]
-    #[cfg_attr(all(feature = "serde", feature = "std"), ts(skip))]
+    #[cfg_attr(all(feature = "serde", feature = "std"), ts(type = "Array<TrackSizingFunction>"))]
     pub grid_template_rows: GridTrackVec<TrackSizingFunction>,
     /// Defines the track sizing functions (widths) of the grid columns
     #[cfg(feature = "grid")]
-    #[cfg_attr(all(feature = "serde", feature = "std"), ts(skip))]
+    #[cfg_attr(all(feature = "serde", feature = "std"), ts(type = "Array<TrackSizingFunction>"))]
     pub grid_template_columns: GridTrackVec<TrackSizingFunction>,
     /// Defines the size of implicitly created rows
     #[cfg(feature = "grid")]
-    #[cfg_attr(all(feature = "serde", feature = "std"), ts(skip))]
+    #[cfg_attr(all(feature = "serde", feature = "std"), ts(type = "Array<NonRepeatedTrackSizingFunction>"))]
     pub grid_auto_rows: GridTrackVec<NonRepeatedTrackSizingFunction>,
     /// Defined the size of implicitly created columns
     #[cfg(feature = "grid")]
-    #[cfg_attr(all(feature = "serde", feature = "std"), ts(skip))]
+    #[cfg_attr(all(feature = "serde", feature = "std"), ts(type = "Array<NonRepeatedTrackSizingFunction>"))]
     pub grid_auto_columns: GridTrackVec<NonRepeatedTrackSizingFunction>,
     /// Controls how items get placed into the grid for auto-placed items
     #[cfg(feature = "grid")]
@@ -478,11 +479,11 @@ pub struct Style {
     // Grid child properties
     /// Defines which row in the grid the item should start and end at
     #[cfg(feature = "grid")]
-    #[cfg_attr(all(feature = "serde", feature = "std"), ts(skip))]
+    #[cfg_attr(all(feature = "serde", feature = "std"), ts(type = "{ start: GridPlacement, end: GridPlacement }"))]
     pub grid_row: Line<GridPlacement>,
     /// Defines which column in the grid the item should start and end at
     #[cfg(feature = "grid")]
-    #[cfg_attr(all(feature = "serde", feature = "std"), ts(skip))]
+    #[cfg_attr(all(feature = "serde", feature = "std"), ts(type = "{ start: GridPlacement, end: GridPlacement }"))]
     pub grid_column: Line<GridPlacement>,
 }
 

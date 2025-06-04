@@ -172,11 +172,7 @@ impl GridAutoFlow {
     }
 }
 
-/// A grid line placement specification which is generic over the coordinate system that it uses to define
-/// grid line positions.
-///
-/// GenericGridPlacement<GridLine> is aliased as GridPlacement and is exposed to users of Taffy to define styles.
-/// GenericGridPlacement<OriginZeroLine> is aliased as OriginZeroGridPlacement and is used internally for placement computations.
+/// A grid line placement using the GenericGridPlacement coordinates to specify line positions.
 ///
 /// See [`crate::compute::grid::type::coordinates`] for documentation on the different coordinate systems.
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
@@ -199,6 +195,23 @@ pub(crate) type OriginZeroGridPlacement = GenericGridPlacement<OriginZeroLine>;
 ///
 /// [Specification](https://www.w3.org/TR/css3-grid-layout/#typedef-grid-row-start-grid-line)
 pub type GridPlacement = GenericGridPlacement<GridLine>;
+
+/// A concrete version of GridPlacement for TypeScript generation
+/// This mirrors GenericGridPlacement<GridLine> but with concrete types for ts-rs
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(all(feature = "serde", feature = "std"), derive(ts_rs::TS))]
+#[cfg_attr(all(feature = "serde", feature = "std"), ts(export))]
+#[cfg_attr(all(feature = "serde", feature = "std"), ts(rename = "GridPlacement"))]
+pub enum ConcreteGridPlacement {
+    /// Place item according to the auto-placement algorithm, and the parent's grid_auto_flow property
+    Auto,
+    /// Place item at specified line (column or row) index
+    Line(i16),
+    /// Item should span specified number of tracks (columns or rows)
+    Span(u16),
+}
+
 impl TaffyAuto for GridPlacement {
     const AUTO: Self = Self::Auto;
 }
@@ -1045,4 +1058,80 @@ impl From<MinMax<MinTrackSizingFunction, MaxTrackSizingFunction>> for TrackSizin
     fn from(input: MinMax<MinTrackSizingFunction, MaxTrackSizingFunction>) -> Self {
         Self::Single(input)
     }
+}
+
+/// A simplified track sizing function for TypeScript export
+/// This provides the most commonly used track sizing functions in a simple format
+#[derive(Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(all(feature = "serde", feature = "std"), derive(ts_rs::TS))]
+#[cfg_attr(all(feature = "serde", feature = "std"), ts(export))]
+#[cfg_attr(all(feature = "serde", feature = "std"), ts(rename = "TrackSizingFunction"))]
+pub enum SimpleTrackSizingFunction {
+    /// A fixed length track (e.g. 100px)
+    Length(f32),
+    /// A percentage track (e.g. 50% - specified as 0.5)
+    Percent(f32),
+    /// A flexible track (e.g. 1fr)
+    Fr(f32),
+    /// An auto-sized track
+    Auto,
+    /// A min-content sized track
+    MinContent,
+    /// A max-content sized track
+    MaxContent,
+    /// A minmax track with min and max sizing functions
+    MinMax { min: SimpleMinTrackSizingFunction, max: SimpleMaxTrackSizingFunction },
+}
+
+/// Simplified min track sizing function for TypeScript export
+#[derive(Copy, Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(all(feature = "serde", feature = "std"), derive(ts_rs::TS))]
+#[cfg_attr(all(feature = "serde", feature = "std"), ts(export))]
+pub enum SimpleMinTrackSizingFunction {
+    /// A fixed length (e.g. 100px)
+    Length(f32),
+    /// A percentage (e.g. 50% - specified as 0.5)
+    Percent(f32),
+    /// Auto-sized
+    Auto,
+    /// Min-content sized
+    MinContent,
+    /// Max-content sized
+    MaxContent,
+}
+
+/// Simplified max track sizing function for TypeScript export
+#[derive(Copy, Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(all(feature = "serde", feature = "std"), derive(ts_rs::TS))]
+#[cfg_attr(all(feature = "serde", feature = "std"), ts(export))]
+pub enum SimpleMaxTrackSizingFunction {
+    /// A fixed length (e.g. 100px)
+    Length(f32),
+    /// A percentage (e.g. 50% - specified as 0.5)
+    Percent(f32),
+    /// A flexible track (e.g. 1fr)
+    Fr(f32),
+    /// Auto-sized
+    Auto,
+    /// Min-content sized
+    MinContent,
+    /// Max-content sized
+    MaxContent,
+}
+
+/// Simplified non-repeated track sizing function for TypeScript export
+/// This is equivalent to MinMax<SimpleMinTrackSizingFunction, SimpleMaxTrackSizingFunction>
+#[derive(Copy, Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(all(feature = "serde", feature = "std"), derive(ts_rs::TS))]
+#[cfg_attr(all(feature = "serde", feature = "std"), ts(export))]
+#[cfg_attr(all(feature = "serde", feature = "std"), ts(rename = "NonRepeatedTrackSizingFunction"))]
+pub struct SimpleNonRepeatedTrackSizingFunction {
+    /// The minimum track sizing function
+    pub min: SimpleMinTrackSizingFunction,
+    /// The maximum track sizing function
+    pub max: SimpleMaxTrackSizingFunction,
 }

@@ -1,10 +1,43 @@
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
-use taffy::{TaffyTree as Taffy, prelude::*, style::Style};
+use taffy::{prelude::*, style::Style, TaffyTree as Taffy};
 use wasm_bindgen::prelude::*;
 
-// Import console.log for browser debugging
-// use web_sys::console;
+// Re-export grid types for TypeScript generation
+pub use taffy::style::{
+    ConcreteGridPlacement, GridTrackRepetition, SimpleMaxTrackSizingFunction, SimpleMinTrackSizingFunction,
+    SimpleNonRepeatedTrackSizingFunction, SimpleTrackSizingFunction,
+};
+
+// Console logging setup for different environments
+#[cfg(feature = "browser-console")]
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(js_namespace = console)]
+    fn log(s: &str);
+}
+
+// For Node.js with console output - provide console.log binding that client can implement
+#[cfg(all(feature = "node-console", feature = "wasm-console"))]
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(js_namespace = console)]
+    fn log(s: &str);
+}
+
+// Pure Node.js without console output
+#[cfg(all(feature = "node-console", not(feature = "wasm-console")))]
+fn log(s: &str) {
+    // In Node.js environments, use println! which gets handled by wasm-bindgen properly
+    println!("{}", s);
+}
+
+#[cfg(not(any(feature = "browser-console", feature = "node-console")))]
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(js_namespace = console)]
+    fn log(s: &str);
+}
 
 // Set up console logging for WASM
 #[wasm_bindgen(start)]
@@ -13,14 +46,16 @@ pub fn main() {
     std::panic::set_hook(Box::new(console_error_panic_hook::hook));
 }
 
-// Simple logging function that works in both Node.js and browser
-#[wasm_bindgen]
-extern "C" {
-    #[wasm_bindgen(js_namespace = console)]
-    fn log(s: &str);
+// Macro to use our logging function - only active in debug builds
+#[cfg(all(feature = "node-console", not(feature = "wasm-console")))]
+macro_rules! wasm_log {
+    ($($t:tt)*) => {
+        #[cfg(debug_assertions)]
+        println!("{}", format!($($t)*))
+    }
 }
 
-// Macro to use our WASM console.log function - only active in debug builds
+#[cfg(not(all(feature = "node-console", not(feature = "wasm-console"))))]
 macro_rules! wasm_log {
     ($($t:tt)*) => {
         #[cfg(debug_assertions)]
@@ -78,16 +113,36 @@ impl TaffyTree {
 
     #[wasm_bindgen]
     pub fn update_style(&self, node_id: u32, style: JsValue) {
+        // Add explicit console logging for debugging
+        #[cfg(feature = "node-console")]
+        web_sys::console::log_1(&format!("🚀 WASM: update_style called for node {}", node_id).into());
+
         let rs: JsStyle = match serde_wasm_bindgen::from_value(style) {
-            Ok(style) => style,
+            Ok(style) => {
+                #[cfg(feature = "node-console")]
+                web_sys::console::log_1(&"✅ WASM: Style deserialized successfully".into());
+                style
+            }
             Err(e) => {
+                // Use both wasm_log! and direct console logging
                 wasm_log!("🚀 WASM: Style decode error in update_style: {}", e);
+                #[cfg(feature = "node-console")]
+                web_sys::console::error_1(&format!("❌ WASM: Style decode error in update_style: {}", e).into());
                 return;
             }
         };
         let node = NodeId::from(node_id as u64);
+
+        #[cfg(feature = "node-console")]
+        web_sys::console::log_1(&format!("🚀 WASM: About to call set_style for node {}", node_id).into());
+
         if let Err(e) = self.inner.borrow_mut().set_style(node, rs.0) {
             wasm_log!("🚀 WASM: Set style error: {}", e);
+            #[cfg(feature = "node-console")]
+            web_sys::console::error_1(&format!("❌ WASM: Set style error: {}", e).into());
+        } else {
+            #[cfg(feature = "node-console")]
+            web_sys::console::log_1(&"✅ WASM: set_style completed successfully".into());
         }
     }
 
@@ -205,4 +260,55 @@ impl TaffyTree {
     }
 
     // …add other helpers you need (top, width, height, etc.)
+}
+
+// Force TypeScript generation of grid types by including them in public API
+// These functions are never called but ensure the types get exported
+
+/// Get the default TrackSizingFunction for TypeScript export
+#[wasm_bindgen]
+pub fn get_default_track_sizing_function() -> JsValue {
+    use taffy::style::TrackSizingFunction;
+    let default_track = TrackSizingFunction::AUTO;
+    serde_wasm_bindgen::to_value(&default_track).unwrap_or(JsValue::NULL)
+}
+
+/// Get the default NonRepeatedTrackSizingFunction for TypeScript export  
+#[wasm_bindgen]
+pub fn get_default_non_repeated_track_sizing_function() -> JsValue {
+    use taffy::style::NonRepeatedTrackSizingFunction;
+    let default_track = NonRepeatedTrackSizingFunction::AUTO;
+    serde_wasm_bindgen::to_value(&default_track).unwrap_or(JsValue::NULL)
+}
+
+/// Get the default GridPlacement for TypeScript export
+#[wasm_bindgen]
+pub fn get_default_grid_placement() -> JsValue {
+    use taffy::style::GridPlacement;
+    let default_placement = GridPlacement::Auto;
+    serde_wasm_bindgen::to_value(&default_placement).unwrap_or(JsValue::NULL)
+}
+
+/// Get the default MinTrackSizingFunction for TypeScript export
+#[wasm_bindgen]
+pub fn get_default_min_track_sizing_function() -> JsValue {
+    use taffy::style::MinTrackSizingFunction;
+    let default_min = MinTrackSizingFunction::AUTO;
+    serde_wasm_bindgen::to_value(&default_min).unwrap_or(JsValue::NULL)
+}
+
+/// Get the default MaxTrackSizingFunction for TypeScript export
+#[wasm_bindgen]
+pub fn get_default_max_track_sizing_function() -> JsValue {
+    use taffy::style::MaxTrackSizingFunction;
+    let default_max = MaxTrackSizingFunction::AUTO;
+    serde_wasm_bindgen::to_value(&default_max).unwrap_or(JsValue::NULL)
+}
+
+/// Get the default GridTrackRepetition for TypeScript export
+#[wasm_bindgen]
+pub fn get_default_grid_track_repetition() -> JsValue {
+    use taffy::style::GridTrackRepetition;
+    let default_repetition = GridTrackRepetition::AutoFill;
+    serde_wasm_bindgen::to_value(&default_repetition).unwrap_or(JsValue::NULL)
 }

@@ -2,11 +2,7 @@
 	"type": "module",
 	"scripts": {
 		"build": "wasm-pack build --target web --release",
-		"build:dev": "npm run build:cargo-debug && npm run build:wasm-bindgen-debug",
-		"build:node-debug": "npm run build:cargo-node-debug && npm run build:wasm-bindgen-debug",
-		"build:cargo-debug": "cargo build --target wasm32-unknown-unknown --features node-console,taffy/debug,taffy/wasm-console",
-		"build:cargo-node-debug": "cargo build --target wasm32-unknown-unknown --features node-console,taffy/debug,taffy/wasm-console",
-		"build:wasm-bindgen-debug": "wasm-bindgen --keep-debug --out-dir pkg --target web ../target/wasm32-unknown-unknown/debug/taffy_wasm.wasm",
+		"build:dev": "wasm-pack build --target web --dev",
 		"build:debug": "npm run build:dev",
 		"build:profiling": "wasm-pack build --target web --profiling"
 	},

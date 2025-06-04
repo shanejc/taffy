@@ -10,6 +10,157 @@ fn main() {
     // Also explicitly export AvailableSpace since we use it in our measure function interface
     AvailableSpace::export_all_to("pkg").unwrap();
 
+    // Generate GridTypes.ts with comprehensive grid type definitions
+    let grid_types_ts = r#"
+// TypeScript definitions for Taffy Grid Types
+// Generated automatically by build.rs - do not edit manually
+
+/** Represents a minimum track sizing function for CSS Grid */
+export type MinTrackSizingFunction = 
+  | { length: number }
+  | { percent: number }
+  | { fr: number }
+  | "Auto"
+  | "MinContent"
+  | "MaxContent";
+
+/** Represents a maximum track sizing function for CSS Grid */
+export type MaxTrackSizingFunction = 
+  | { length: number }
+  | { percent: number }
+  | { fr: number }
+  | "Auto"
+  | "MinContent"
+  | "MaxContent"
+  | "FitContent";
+
+/** Represents a track sizing function that can be used in grid-template-rows/columns */
+export type TrackSizingFunction = 
+  | { 
+      Single: {
+        min: MinTrackSizingFunction;
+        max: MaxTrackSizingFunction;
+      }
+    }
+  | {
+      Repeat: {
+        repetition: GridTrackRepetition;
+        tracks: TrackSizingFunction[];
+      }
+    };
+
+/** Represents a non-repeated track sizing function for grid-auto-rows/columns */
+export type NonRepeatedTrackSizingFunction = {
+  min: MinTrackSizingFunction;
+  max: MaxTrackSizingFunction;
+};
+
+/** Represents grid track repetition modes */
+export type GridTrackRepetition = 
+  | "AutoFill"
+  | "AutoFit"
+  | { Count: number };
+
+/** Represents grid line placement */
+export type GridPlacement = 
+  | "Auto"
+  | { Line: number }
+  | { Span: number };
+
+/** Helper types for grid areas */
+export type GridArea = {
+  grid_row_start: GridPlacement;
+  grid_row_end: GridPlacement;
+  grid_column_start: GridPlacement;
+  grid_column_end: GridPlacement;
+};
+
+/** Grid auto flow direction */
+export type GridAutoFlow = 
+  | "Row"
+  | "Column"
+  | "RowDense"
+  | "ColumnDense";
+
+/** Complete grid container style properties */
+export interface GridContainerStyle {
+  /** Defines the track sizing functions (heights) of the grid rows */
+  grid_template_rows?: TrackSizingFunction[];
+  /** Defines the track sizing functions (widths) of the grid columns */  
+  grid_template_columns?: TrackSizingFunction[];
+  /** Defines the size of implicitly created rows */
+  grid_auto_rows?: NonRepeatedTrackSizingFunction[];
+  /** Defines the size of implicitly created columns */
+  grid_auto_columns?: NonRepeatedTrackSizingFunction[];
+  /** Controls how items get placed into the grid for auto-placed items */
+  grid_auto_flow?: GridAutoFlow;
+}
+
+/** Complete grid item style properties */
+export interface GridItemStyle {
+  /** Controls the grid row in which the item gets placed */
+  grid_row?: GridPlacement;
+  /** Controls the grid column in which the item gets placed */
+  grid_column?: GridPlacement;
+  /** Controls the grid row in which the item starts */
+  grid_row_start?: GridPlacement;
+  /** Controls the grid row in which the item ends */
+  grid_row_end?: GridPlacement;
+  /** Controls the grid column in which the item starts */
+  grid_column_start?: GridPlacement;
+  /** Controls the grid column in which the item ends */
+  grid_column_end?: GridPlacement;
+}
+"#;
+
+    std::fs::write("pkg/GridTypes.ts", grid_types_ts).expect("failed to write GridTypes.ts");
+
+    // Generate a comprehensive index.ts file for easy imports
+    let index_ts = r#"
+// Main exports for taffy-wasm
+// Generated automatically by build.rs - do not edit manually
+
+export * from './taffy_wasm.js';
+export { Style } from './Style.js';
+export { 
+  GridContainerStyle, 
+  GridItemStyle, 
+  TrackSizingFunction, 
+  NonRepeatedTrackSizingFunction,
+  MinTrackSizingFunction,
+  MaxTrackSizingFunction,
+  GridPlacement,
+  GridTrackRepetition,
+  GridArea,
+  GridAutoFlow
+} from './GridTypes.js';
+
+// Re-export commonly used types from their individual files
+export { FlexDirection } from './FlexDirection.js';
+export { FlexWrap } from './FlexWrap.js';
+export { AlignContent } from './AlignContent.js';
+export { AlignItems } from './AlignItems.js';
+export { Display } from './Display.js';
+export { Position } from './Position.js';
+export { BoxSizing } from './BoxSizing.js';
+export { Overflow } from './Overflow.js';
+export { TextAlign } from './TextAlign.js';
+export { GridAutoFlow } from './GridAutoFlow.js';
+
+// Geometry types
+export { Point } from './Point.js';
+export { Size } from './Size.js';
+export { Rect } from './Rect.js';
+
+// Length types  
+export { LengthPercentage } from './LengthPercentage.js';
+export { LengthPercentageAuto } from './LengthPercentageAuto.js';
+export { Dimension } from './Dimension.js';
+export { AvailableSpace } from './AvailableSpace.js';
+"#;
+
+    std::fs::write("pkg/index.ts", index_ts).expect("failed to write index.ts");
+
     // Generate CompactLength TypeScript declaration with helpers
     let compact_length_ts = r#"
 // CompactLength TypeScript declaration and helpers
