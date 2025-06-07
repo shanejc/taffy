@@ -31,8 +31,8 @@ web-sys = { version = "0.3", features = ["console"] }
 serde        = { version = "1.0", features = ["derive"] }
 serde-wasm-bindgen = "0.4"
 console_error_panic_hook = "0.1"
-# Include debug and wasm-console features for taffy core debug output
-taffy = { path = "..", default-features = false, features = ["std","flexbox","grid","serde","taffy_tree","debug","wasm-console"] }
+# Base taffy features without debug - debug features are now conditional
+taffy = { path = "..", default-features = false, features = ["std","flexbox","grid","serde","taffy_tree"] }
 
 [build-dependencies]
 ts-rs = "10.1.0"
@@ -41,6 +41,8 @@ regex = "1.10"
 
 [features]
 default = []
+# Debug features - only enable when explicitly requested
+debug-logging = ["taffy/debug", "taffy/wasm-console"]
 # Use browser console.log for debug output (default for web)
 browser-console = []
 # Use println for debug output (better for Node.js/Vitest/VSCode debugging) 

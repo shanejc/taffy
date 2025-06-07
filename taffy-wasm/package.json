@@ -2,9 +2,10 @@
 	"type": "module",
 	"scripts": {
 		"build": "wasm-pack build --target web --release",
-		"build:dev": "wasm-pack build --target web --dev",
+		"build:dev": "wasm-pack build --target web --dev --features debug-logging",
 		"build:debug": "npm run build:dev",
-		"build:profiling": "wasm-pack build --target web --profiling"
+		"build:profiling": "wasm-pack build --target web --profiling",
+		"build:release-with-debug": "wasm-pack build --target web --release --features debug-logging"
 	},
 	"dependencies": {
 		"taffy-wasm": "link:pkg"
